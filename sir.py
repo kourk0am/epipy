@@ -1,8 +1,35 @@
 import numpy as np
 
 class SIR(object):
-    """ This class represents the SIR epdidemiological model. 
+    """ This class represents the SIR epdidemiological model. It alows R0 to be changed during the course of simulation in order to mimick effect of measures taken to stop the spread of the disease.
     See https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SIR_model
+    
+    tldr: self.par; self.simulate(); self.result
+    
+    Parameters for the simulation are given in self.par dictionary. This can be passed to the SIR object upon creation or changed later. The dictionary looks like this:
+     self.par = {'N': 70e6, # total population
+                        'I0' : 1, # number of initial infected individuals
+                        'R' : 3.5, #reproduction number
+                        'T_inf' : 2.9, # infectious time (days)
+                        'intervention' : True, # do we do an intervention
+                        'R_intervention' : [0.7, 1.3], # R during intervention intervals
+                        'intervention_intervals' : [[50,300], [300,600]], # during which time intervals we do the intervention [start, stop]
+                        'start_day' : 0, # first day of the outbreak - change this to shift time axis of the simulation
+                        'duration' : 600 # duration of the simulation
+                       }
+    
+    There are no sanity checks for any of the parameters! 
+                       
+    intervention - if set to True, R is going to be changed according to R_intervention and intervention_intervals. If it is false R stays constant
+    'R_intervention' is a list of R values during intervention intervals.
+    intervention_intervals is a list of [start,stop] intervals during which the corresponding R values are applied (first R during first interval, second R during the second...). 
+    Outside of the intervals R goes back to its original value.
+    R_intervention needs to have the same number of items as intervention_intervals. The intervals should not overlap.                  
+                      
+    
+    Simulation is run with self.simulate(dt = 0.01). If T_inf is less than 1 consider using shorter dt than the default. 
+    Results are written in self.result - a dict with arrays for time, susceptible population, infected population, removed population and the R value
+    
     """
     def __init__(self, parameters = None):
         self.par = parameters
@@ -13,7 +40,7 @@ class SIR(object):
             self.par = {'N': 70e6, # total population
                         'I0' : 1, # number of initial infected individuals
                         'R' : 3.5, #reproduction number
-                        'T_inf' : 2.9, # infectious time - no symptoms, infectious
+                        'T_inf' : 2.9, # infectious time
                         'intervention' : True, # do we do an intervention
                         'R_intervention' : [0.7, 1.3], # R during intervention intervals
                         'intervention_intervals' : [[50,300], [300,600]], # during which time intervals we do the intervention [start, stop]

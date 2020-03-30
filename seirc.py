@@ -4,10 +4,60 @@ class SEIRC(object):
     """ This class represents the SEIR epdidemiological model with added clinical estimates. 
     See https://en.wikipedia.org/wiki/Compartmental_models_in_epidemiology#The_SEIR_model for the classical SEIR model.
     
-    The 'removed' population from the clasical SEIR
-    is split between mild and severe cases which recover at different timescales. Some severe cases become fatal. Fraction of severe cases 
-    which become fatal depends on healthcare system load. If threre are more severe cases than the healthcare can handle then the 'overflow'
-    severe cases have increased fatality rate.
+    tldr: self.par; self.simulate(); self.result
+    
+    The 'removed' population from the clasical SEIR is split between mild and severe cases which recover at different 
+    timescales. All mild cases recover. Some severe cases become fatal. Fraction of severe cases which become fatal depends on healthcare 
+    system load. If threre are more severe cases than the healthcare can handle then the 'overflow'severe cases, 
+    which cannot fit into the healthcare capacity, have increased fatality rate.
+    
+    Parameters for the simulation are given in self.par dictionary. This can be passed to the SEIRC object upon creation or changed later. 
+    The dictionary looks like this:
+    if self.par == None:
+            self.par = {'N': 70e6, # total population
+                        'I0' : 1, # number of initial infected individuals
+                        'R' : 3.5, #reproduction number
+                        'T_inc' : 5.2, # incubation time - no symptoms, not infectious
+                        'T_inf' : 2.9, # infectious time - no symptoms, infectious
+                        'T_mild' : 14, # recovery time for mild cases
+                        'T_severe' : 30, # recovery time for severe cases
+                        'p_mild' : 0.8, # probability of a mild case
+                        'p_fatal' : 0.02, # probability of a fatal case
+                        'p_fatal_overrun' : 0.05, # probability of a fatal case in an overrun healthcare system
+                        'healthcare_capacity' : 30e3, # maximum number of severe cases that the healthcare system can handle
+                        'intervention' : True, # do we do an intervention
+                        'R_intervention' : [0.7,1.3], # R after intervention
+                        'intervention_intervals' : [[50,300], [300,600]], # during which time intervals we do the intervention [start, stop]
+                        'start_day' : 0, # first day of the outbreak - change this to shift time axis of the simulation
+                        'duration' : 600 # duration of the simulation
+                       }
+    
+    p_mild is probability that a random individual ends up in the mild category if infected (probability for ending up in the severe category
+    is calculated automatically as 1-p_mild)
+    
+    p_fatal is probability that a random individual dies if infected and if given all available help from healthcare. Probability that 
+    an individual in severe category dies is calculated from this and p_mild and load on the
+    healthcare system. Make sure that p_fatal<1-p_mild
+    
+    p_fatal_overrun is probability that a random individual dies if infected and not given all available help from healthcare 
+    (too many patients, go home, good luck). Probability that an individual in severe category dies is calculated from this, p_mild and load on the
+    healthcare system. Make sure that p_fatal_overrun<1-p_mild
+    
+    healthcare_capacity is the maximu number of severe cases that the healthcare system can handle at one time. Any extra severe cases end up 
+    in the overrun category and have an increased probability of dying. 
+    
+    intervention - if set to True, R is going to be changed according to R_intervention and intervention_intervals. If it is false R stays constant.
+    
+    'R_intervention' is a list of R values during intervention intervals.
+    
+    intervention_intervals is a list of [start,stop] intervals during which the corresponding R values are applied (first R during first interval, second R during the second...). 
+    Outside of the intervals R goes back to its original value.
+    R_intervention needs to have the same number of items as intervention_intervals. The intervals should not overlap.             
+    
+    Simulation is run with self.simulate(dt = 0.01). If any of the characteristic times is less than 1 consider using shorter dt than the default. 
+    Results are written in self.result - a dict with arrays for time, susceptible, exposed, infected, mild, severe, dead and recovered populations. 
+    Removed population from the clasical SEIR and the R values are given as well. The healthcare load is also given - this is ratio of (active severe cases)/(healthcare capacity)
+    
     """
     def __init__(self, parameters = None):
         self.par = parameters
